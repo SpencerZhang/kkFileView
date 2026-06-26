@@ -264,6 +264,17 @@
             }
 
             let settled = false;
+            const fallbackToMainThread = function(error) {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                worker.terminate();
+                if (error) {
+                    console.warn('Excel Worker转换失败，回退主线程转换:', error);
+                }
+                transformOnMainThread(value, name, resolve, reject);
+            };
 
             worker.onmessage = function(event) {
                 const data = event.data || {};
@@ -276,17 +287,12 @@
                 }
 
                 if (data.type === 'error') {
-                    settled = true;
-                    worker.terminate();
-                    reject(new Error(data.message || 'Excel转换失败'));
+                    fallbackToMainThread(data.message || 'Excel转换失败');
                 }
             };
 
             worker.onerror = function(error) {
-                worker.terminate();
-                if (!settled) {
-                    transformOnMainThread(value, name, resolve, reject);
-                }
+                fallbackToMainThread(error && error.message ? error.message : error);
             };
 
             worker.postMessage({

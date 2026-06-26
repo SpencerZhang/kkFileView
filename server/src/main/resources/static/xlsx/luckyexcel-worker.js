@@ -1,3 +1,8 @@
+// LuckyExcel's bundled getBinaryContent reads window.XMLHttpRequest.
+// Web Worker exposes XMLHttpRequest on self, so provide a minimal window alias
+// before loading the UMD bundle.
+self.window = self;
+
 importScripts('./luckyexcel.umd.js');
 
 self.console.log = function () {};
